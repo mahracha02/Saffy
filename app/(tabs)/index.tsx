@@ -1,98 +1,207 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-
+import { useRouter } from "expo-router";
+import { AlertCircle, ShieldAlert } from "lucide-react-native";
+import React from "react";
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  Pressable, 
+  Dimensions,
+  Platform,
+  StatusBar,
+  SafeAreaView,
+} from "react-native";
+import * as Haptics from "expo-haptics";
+ 
+import Colors from "@/constants/colors";
+ 
+const { width } = Dimensions.get("window");
+ 
 export default function HomeScreen() {
+  const router = useRouter();
+ 
+  const handleEmergencyPress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+    console.log("Emergency alert triggered");
+    router.push("/(tabs)/scenarios");
+  };
+ 
+  const handleSilentPress = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+    console.log("Silent alert triggered");
+    router.push({
+      pathname: "/(tabs)/alert-sent",
+      params: { type: "silent" },
+    });
+  };
+ 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+<View style={styles.container}>
+<StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+<SafeAreaView style={styles.safeArea}>
+<View style={styles.content}>
+<View style={styles.header}>
+<Text style={styles.logo}>ZONE ADAPT</Text>
+<Text style={styles.subtitle}>Protection instantanée</Text>
+</View>
+ 
+          <View style={styles.mainButtonContainer}>
+<Pressable 
+              style={({ pressed }) => [
+                styles.emergencyButton,
+                pressed && styles.emergencyButtonPressed
+              ]}
+              onPress={handleEmergencyPress}
+              testID="emergency-button"
+>
+<View style={styles.buttonContent}>
+<ShieldAlert size={64} color={Colors.surface} strokeWidth={2.5} />
+<Text style={styles.emergencyButtonText}>ALERTE</Text>
+<Text style={styles.emergencyButtonSubtext}>Appuyer pour activer</Text>
+</View>
+</Pressable>
+</View>
+ 
+          <Pressable 
+            style={({ pressed }) => [
+              styles.silentButton,
+              pressed && styles.silentButtonPressed
+            ]}
+            onPress={handleSilentPress}
+            testID="silent-button"
+>
+<AlertCircle size={20} color={Colors.silent} strokeWidth={2.5} />
+<Text style={styles.silentButtonText}>Alerte silencieuse</Text>
+</Pressable>
+ 
+          <View style={styles.footer}>
+<Pressable 
+              style={styles.refugeLink}
+              onPress={() => router.push("/(tabs)/refuge-profile")}
+>
+<Text style={styles.refugeLinkText}>Je suis un refuge / commerçant</Text>
+</Pressable>
+</View>
+</View>
+</SafeAreaView>
+</View>
   );
 }
-
+ 
+const BUTTON_SIZE = Math.min(width * 0.65, 280);
+ 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  safeArea: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: "space-between",
+    paddingVertical: 32,
+  },
+  header: {
+    alignItems: "center",
+    paddingTop: 24,
+  },
+  logo: {
+    fontSize: 32,
+    fontWeight: "800" as const,
+    color: Colors.text,
+    letterSpacing: 1,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    fontWeight: "500" as const,
+  },
+  mainButtonContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emergencyButton: {
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    borderRadius: BUTTON_SIZE / 2,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  emergencyButtonPressed: {
+    transform: [{ scale: 0.95 }],
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  buttonContent: {
+    alignItems: "center",
+    gap: 12,
+  },
+  emergencyButtonText: {
+    fontSize: 32,
+    fontWeight: "900" as const,
+    color: Colors.surface,
+    letterSpacing: 2,
+  },
+  emergencyButtonSubtext: {
+    fontSize: 14,
+    color: Colors.surface,
+    opacity: 0.9,
+    fontWeight: "500" as const,
+  },
+  silentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.silent,
+  },
+  silentButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  silentButtonText: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: Colors.silent,
+  },
+  footer: {
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  refugeLink: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  refugeLinkText: {
+    fontSize: 14,
+    color: Colors.textLight,
+    fontWeight: "500" as const,
+    textDecorationLine: "underline" as const,
   },
 });
