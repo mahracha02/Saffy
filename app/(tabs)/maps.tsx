@@ -260,7 +260,7 @@ export default function MapsScreen() {
           >
             <View style={styles.stopButtonContent}>
               <Image 
-                source={require("@/assets/images/adaptive-icon.png")}
+                source={require("@/assets/images/iconStopButton.png")}
                 style={styles.stopButtonIcon}
               />
               <Text style={styles.stopButtonLabel}>Stop</Text>
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     height: 90,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.darkLight,
+    backgroundColor: Colors.secondary,
     borderRadius: 95,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 8 },
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
   stopButtonLabel: {
     fontSize: 16,
     fontWeight: "700" as const,
-    color: Colors.secondary,
+    color: Colors.surface,
     letterSpacing: 0.3,
   },
   stopButtonText: {
