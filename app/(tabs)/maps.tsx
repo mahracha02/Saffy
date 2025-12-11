@@ -7,9 +7,11 @@ import {
   StatusBar,
   ActivityIndicator,
   Platform,
+  Image,
+  Animated,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { MapPin, Navigation, Plus, Minus, X } from "lucide-react-native";
+import { MapPin, Navigation, Plus, Minus, Settings, MoreVertical } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import MapView, { Marker, Circle } from "react-native-maps";
@@ -35,9 +37,29 @@ export default function MapsScreen() {
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
+  
+  // Animation for alert pulse
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     requestLocationPermission();
+    
+    // Start pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const requestLocationPermission = async () => {
@@ -112,7 +134,7 @@ export default function MapsScreen() {
   };
 
   const handleStop = () => {
-    router.back();
+    router.push("/(tabs)");
   };
 
   if (loading) {
@@ -149,7 +171,7 @@ export default function MapsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -193,27 +215,6 @@ export default function MapsScreen() {
           />
         </MapView>
 
-        {/* Location info card */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoContent}>
-            <View style={styles.infoRow}>
-              <MapPin size={16} color={Colors.primary} />
-              <Text style={styles.infoLabel}>Latitude</Text>
-              <Text style={styles.infoValue}>{location.latitude.toFixed(4)}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <MapPin size={16} color={Colors.primary} />
-              <Text style={styles.infoLabel}>Longitude</Text>
-              <Text style={styles.infoValue}>{location.longitude.toFixed(4)}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <MapPin size={16} color={Colors.GreenLight} />
-              <Text style={styles.infoLabel}>Accuracy</Text>
-              <Text style={styles.infoValue}>{Math.round(location.accuracy)}m</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Control buttons */}
         <View style={styles.controls}>
           <Pressable
@@ -240,13 +241,16 @@ export default function MapsScreen() {
         </View>
 
         {/* Status indicator */}
-        <View style={styles.statusIndicator}>
+        <View style={[styles.statusIndicator, { top: insets.top + 12 }]}>
           <View style={[styles.statusDot, styles.activeDot]} />
           <Text style={styles.statusText}>Live Location</Text>
         </View>
+      </SafeAreaView>
 
-        {/* Bottom Control Bar */}
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 16 }]}>
+      {/* Bottom Control Bar with FAB - Fixed outside SafeAreaView */}
+      <View style={styles.bottomBarContainer}>
+        {/* Floating Action Button - Centered and completely outside above bar */}
+        <Animated.View style={[styles.stopButtonWrapper, { transform: [{ scale: pulseAnim }] }]}>
           <Pressable 
             style={({ pressed }) => [
               styles.stopButton,
@@ -254,11 +258,35 @@ export default function MapsScreen() {
             ]}
             onPress={handleStop}
           >
-            <X size={24} color={Colors.surface} strokeWidth={2.5} />
-            <Text style={styles.stopButtonText}>Arrêter</Text>
+            <View style={styles.stopButtonContent}>
+              <Image 
+                source={require("@/assets/images/adaptive-icon.png")}
+                style={styles.stopButtonIcon}
+              />
+              <Text style={styles.stopButtonLabel}>Stop</Text>
+            </View>
+          </Pressable>
+        </Animated.View>
+
+        {/* Tab Bar - Below FAB with 3 sections */}
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 12 }]}>
+          {/* Left: Settings Icon */}
+          <Pressable style={styles.tabBarSection} onPress={() => console.log('Settings')}>
+            <Settings size={24} color={Colors.secondary} strokeWidth={2} />
+          </Pressable>
+
+          {/* Center: Alert Status */}
+          <View style={styles.tabBarCenter}>
+            <View style={styles.alertBadge} />
+            <Text style={styles.tabBarStatusText}>Vous êtes en alerte</Text>
+          </View>
+
+          {/* Right: More Icon */}
+          <Pressable style={styles.tabBarSection} onPress={() => console.log('More')}>
+            <MoreVertical size={24} color={Colors.secondary} strokeWidth={2} />
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -379,7 +407,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.secondary,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: Colors.shadow,
@@ -389,13 +417,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   centerButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.secondary,
   },
   zoomControls: {
     gap: 8,
   },
   zoomButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.secondary,
   },
   statusIndicator: {
     position: "absolute",
@@ -414,6 +442,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 2,
+    zIndex: 5,
   },
   statusDot: {
     width: 8,
@@ -434,14 +463,20 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: "600" as const,
   },
-  bottomBar: {
+  bottomBarContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  bottomBar: {
+    width: "100%",
     backgroundColor: Colors.surface,
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     shadowColor: Colors.shadow,
@@ -449,31 +484,90 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
-  },
-  stopButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  tabBarSection: {
+    width: 48,
+    height: 38,
+    alignItems: "center",
     justifyContent: "center",
+  },
+  tabBarCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
     gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
+  },
+  alertBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: Colors.primary,
-    borderRadius: 16,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabBarStatusText: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: Colors.secondary,
+  },
+  stopButtonWrapper: {
+    position: "absolute",
+    bottom: 100,
+    alignSelf: "center",
+    zIndex: 10,
+  },
+  stopButton: {
+    width: 90,
+    height: 90,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.darkLight,
+    borderRadius: 95,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 8,
   },
   stopButtonPressed: {
     opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.92 }],
+  },
+  stopButtonContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  stopButtonIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    marginBottom: -12,
+    marginTop: -4,
+  },
+  stopButtonLabel: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: Colors.secondary,
+    letterSpacing: 0.3,
   },
   stopButtonText: {
     fontSize: 16,
     fontWeight: "700" as const,
     color: Colors.surface,
     letterSpacing: 0.5,
+    shadowColor: Colors.shadowDark,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
 });
 
