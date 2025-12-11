@@ -60,7 +60,8 @@ export default function MapsScreen() {
 
       // Seed mock markers near current location
       setMarkers(createMockMarkers(coords.latitude, coords.longitude));
-    } catch {
+    } catch(e) {
+      console.error(e);
       setError("Failed to get location");
       setLoading(false);
     }
