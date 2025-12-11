@@ -51,7 +51,7 @@ export default function AlertSentScreen() {
  
   const handleDone = () => {
     router.dismissAll();
-    router.replace("/(tabs)");
+    router.replace("/(tabs)/maps");
   };
  
   return (
@@ -83,7 +83,7 @@ export default function AlertSentScreen() {
  
           <Animated.View style={[styles.instructionsContainer, { opacity: fadeAnim }]}>
 <View style={styles.instructionCard}>
-<Shield size={24} color={Colors.primary} strokeWidth={2.5} />
+<Shield size={24} color={Colors.secondary} strokeWidth={2.5} />
 <View style={styles.instructionText}>
 <Text style={styles.instructionTitle}>Vos contacts alertés</Text>
 <Text style={styles.instructionDescription}>
@@ -93,7 +93,7 @@ export default function AlertSentScreen() {
 </View>
  
             <View style={styles.instructionCard}>
-<MapPin size={24} color={Colors.primary} strokeWidth={2.5} />
+<MapPin size={24} color={Colors.secondary} strokeWidth={2.5} />
 <View style={styles.instructionText}>
 <Text style={styles.instructionTitle}>Position partagée</Text>
 <Text style={styles.instructionDescription}>
@@ -103,7 +103,7 @@ export default function AlertSentScreen() {
 </View>
  
             <View style={styles.instructionCard}>
-<Phone size={24} color={Colors.primary} strokeWidth={2.5} />
+<Phone size={24} color={Colors.secondary} strokeWidth={2.5} />
 <View style={styles.instructionText}>
 <Text style={styles.instructionTitle}>Aide en route</Text>
 <Text style={styles.instructionDescription}>
@@ -133,7 +133,7 @@ export default function AlertSentScreen() {
               onPress={handleDone}
               testID="done-button"
 >
-<Text style={styles.doneButtonText}>Retour à l&apos;accueil</Text>
+<Text style={styles.doneButtonText} onPress={handleDone}>Passer à la carte</Text>
 </Pressable>
 </Animated.View>
 </View>
@@ -145,7 +145,7 @@ export default function AlertSentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.GreenLight,
   },
   safeArea: {
     flex: 1,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 16,
-    backgroundColor: Colors.primaryDark,
+    backgroundColor: Colors.darkLight,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: Colors.surface,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     paddingVertical: 16,
-    backgroundColor: "transparent",
+    backgroundColor: Colors.secondary,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: Colors.surface,

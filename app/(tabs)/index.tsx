@@ -56,6 +56,7 @@ export default function HomeScreen() {
   style={styles.logo}
   resizeMode="contain"
 />
+<Text style={styles.appName}>Saffy</Text>
 <Text style={styles.subtitle}>Ensemble, créons des lieux plus sûrs.</Text>
 </View>
  
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingVertical: -8,
     justifyContent: "space-between",
   },
   header: {
@@ -112,10 +113,17 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
   },
+  appName: {
+    fontSize: 32,
+    fontWeight: "700" as const,
+    color: Colors.text,
+    marginTop: -12,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
   subtitle: {
     fontSize: 16,
     color: Colors.textSecondary,
-    marginTop: -12,
     fontWeight: "500" as const,
     marginBottom: 80,
   },
@@ -164,7 +172,7 @@ const styles = StyleSheet.create({
   },
   refugeLinkText: {
     fontSize: 14,
-    color: Colors.textLight,
+    color: Colors.textSecondary,
     fontWeight: "500" as const,
     textDecorationLine: "underline" as const,
   },
