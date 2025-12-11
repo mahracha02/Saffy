@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { MapPin, Navigation, Plus, Minus, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
-import LeafletMapWeb, { LeafletMapHandle } from "@/components/LeafletMapWeb";
+import LeafletMapWeb, { LeafletMapHandle, MapMarker } from "@/components/LeafletMapWeb";
 import LeafletMapNative from "@/components/LeafletMapNative";
 
 import Colors from "@/constants/colors";
@@ -26,6 +26,7 @@ export default function MapsScreen() {
     latitude: 48.8566,
     longitude: 2.3522,
   });
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
 
   useEffect(() => {
     requestLocationPermission();
@@ -56,10 +57,37 @@ export default function MapsScreen() {
       // Center map on user location
       setCurrentRegion({ latitude: coords.latitude, longitude: coords.longitude });
       mapRef.current?.centerTo(coords.latitude, coords.longitude);
+
+      // Seed mock markers near current location
+      setMarkers(createMockMarkers(coords.latitude, coords.longitude));
     } catch {
       setError("Failed to get location");
       setLoading(false);
     }
+  };
+
+  const createMockMarkers = (lat: number, lng: number): MapMarker[] => {
+    const rnd = (min: number, max: number) => Math.random() * (max - min) + min;
+    const labels = [
+      { title: "Pompier", subtitle: "Caserne 12" },
+      { title: "Pharmacie", subtitle: "Ouverte 24h" },
+      { title: "Hôpital", subtitle: "Urgences" },
+      { title: "Police", subtitle: "Commissariat" },
+      { title: "Défibrillateur", subtitle: "Accès public" },
+    ];
+    const colors = ["#EF4444", "#22C55E", "#3B82F6", "#F59E0B", "#8B5CF6"];
+    const iconUrl = "https://raw.githubusercontent.com/mahracha02/Saffy/web/assets/images/right-icon.png";
+    return new Array(5).fill(null).map((_, i) => ({
+      id: `mock-${i}`,
+      latitude: lat + rnd(-0.01, 0.01),
+      longitude: lng + rnd(-0.01, 0.01),
+      color: colors[i % colors.length],
+      iconUrl,
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+      title: labels[i % labels.length].title,
+      subtitle: labels[i % labels.length].subtitle,
+    }));
   };
 
   const handleCenterMap = () => {
@@ -122,6 +150,14 @@ export default function MapsScreen() {
               latitude={location.latitude}
               longitude={location.longitude}
               accuracy={location.accuracy}
+              markers={markers}
+              onMarkerPress={(id) => {
+                const m = markers.find((mm) => mm.id === id);
+                if (m) {
+                  // Center on pressed marker for a simple UX feedback
+                  mapRef.current?.centerTo(m.latitude, m.longitude);
+                }
+              }}
               onRegionChange={(r) => setCurrentRegion({ latitude: r.latitude, longitude: r.longitude })}
             />
           ) : (
@@ -130,6 +166,13 @@ export default function MapsScreen() {
               latitude={location.latitude}
               longitude={location.longitude}
               accuracy={location.accuracy}
+              markers={markers}
+              onMarkerPress={(id) => {
+                const m = markers.find((mm) => mm.id === id);
+                if (m) {
+                  mapRef.current?.centerTo(m.latitude, m.longitude);
+                }
+              }}
               onRegionChange={(r) => setCurrentRegion({ latitude: r.latitude, longitude: r.longitude })}
             />
           )}

@@ -1,11 +1,25 @@
 import React, { useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from "react";
 import { View, StyleSheet } from "react-native";
 
+export type MapMarker = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  color?: string;
+  title?: string;
+  subtitle?: string;
+  iconUrl?: string;
+  iconSize?: [number, number];
+  iconAnchor?: [number, number];
+};
+
 type Props = {
   latitude: number;
   longitude: number;
   accuracy: number;
   onRegionChange?: (region: { latitude: number; longitude: number }) => void;
+  markers?: MapMarker[];
+  onMarkerPress?: (markerId: string) => void;
 };
 
 export type LeafletMapHandle = {
@@ -14,12 +28,13 @@ export type LeafletMapHandle = {
   zoomOut: () => void;
 };
 
-const LeafletMapWeb = forwardRef<LeafletMapHandle, Props>(({ latitude, longitude, accuracy, onRegionChange }, ref) => {
+const LeafletMapWeb = forwardRef<LeafletMapHandle, Props>(({ latitude, longitude, accuracy, onRegionChange, markers = [], onMarkerPress }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const center = useMemo<[number, number]>(() => [latitude, longitude], [latitude, longitude]);
 
   // Dynamically loaded react-leaflet module (client-only)
   const [rl, setRl] = useState<any>(null);
+  const [Lmod, setLmod] = useState<any>(null);
 
   // Exposed API implementation
   const apiRef = useRef<LeafletMapHandle | null>(null);
@@ -44,12 +59,20 @@ const LeafletMapWeb = forwardRef<LeafletMapHandle, Props>(({ latitude, longitude
     }
 
     let mounted = true;
-    // Dynamically import react-leaflet on client to avoid "window is not defined"
-    import("react-leaflet").then((mod) => {
-      if (mounted) setRl(mod);
-    }).catch(() => {
-      // ignore; component will render empty container
-    });
+    // Dynamically import react-leaflet and leaflet on client to avoid SSR issues
+    Promise.all([
+      import("react-leaflet"),
+      import("leaflet"),
+    ])
+      .then(([rlMod, lMod]) => {
+        if (mounted) {
+          setRl(rlMod);
+          setLmod(lMod);
+        }
+      })
+      .catch(() => {
+        // ignore; component will render empty container
+      });
     return () => {
       mounted = false;
     };
@@ -99,15 +122,49 @@ const LeafletMapWeb = forwardRef<LeafletMapHandle, Props>(({ latitude, longitude
     return null;
   };
 
-  const { MapContainer, TileLayer, Circle, CircleMarker } = rl;
+  const { MapContainer, TileLayer, Circle, CircleMarker, Popup, Marker } = rl;
 
   return (
     <View style={styles.container}>
       <div ref={containerRef} style={{ height: "100%", width: "100%" }}>
-        <MapContainer center={center} zoom={15} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-          <Circle center={center} radius={Math.max(accuracy, 5)} pathOptions={{ color: "#5E81AC", fillColor: "#5E81AC", fillOpacity: 0.2 }} />
-          <CircleMarker center={center} radius={7} pathOptions={{ color: "#2563EB", fillColor: "#2563EB", fillOpacity: 1 }} />
+        <MapContainer center={center} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
+          <TileLayer url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png" attribution="&copy; OpenStreetMap contributors" />
+          <CircleMarker
+              center={center}
+              radius={15}
+              pathOptions={{ color: "#fc486b", fillColor: "#fc486b", fillOpacity: 1 }}
+          />
+
+          {/* Custom markers */}
+          {markers?.map((m) => {
+              const size: [number, number] = m.iconSize || [32, 32];
+              const anchor: [number, number] = m.iconAnchor || [size[0] / 2, size[1]];
+              const icon = Lmod.icon({
+                iconUrl: m.iconUrl,
+                iconSize: size,
+                iconAnchor: anchor,
+              });
+              return (
+                  <Marker
+                      key={m.id}
+                      position={[m.latitude, m.longitude]}
+                      icon={icon}
+                      zIndexOffset={20}
+                      eventHandlers={{
+                        click: () => onMarkerPress?.(m.id),
+                      }}
+                  >
+                    {(m.title || m.subtitle) && (
+                        <Popup>
+                          <div style={{minWidth: 120}}>
+                            {m.title && <div style={{fontWeight: 600}}>{m.title}</div>}
+                            {m.subtitle && <div style={{opacity: 0.7}}>{m.subtitle}</div>}
+                          </div>
+                        </Popup>
+                    )}
+                  </Marker>
+            );
+          })}
           <Controller center={center} onRegionChange={onRegionChange} expose={(api) => (apiRef.current = api)} />
         </MapContainer>
       </div>

@@ -36,12 +36,12 @@ export default function AlertSentScreen() {
         toValue: 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     ]).start();
   }, [scaleAnim, fadeAnim]);
