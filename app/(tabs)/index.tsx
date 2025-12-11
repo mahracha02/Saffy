@@ -1,31 +1,37 @@
 import { useRouter } from "expo-router";
-import { AlertCircle, ShieldAlert } from "lucide-react-native";
+import { AlertCircle } from "lucide-react-native";
 import React from "react";
 import { 
   StyleSheet, 
   Text, 
   View, 
   Pressable, 
-  Dimensions,
   Platform,
   StatusBar,
-  SafeAreaView,
+  Image,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
- 
+
 import Colors from "@/constants/colors";
+import { SwipeAlertButton } from "@/components/swipe-alert-button";
  
-const { width } = Dimensions.get("window");
- 
+
 export default function HomeScreen() {
   const router = useRouter();
- 
-  const handleEmergencyPress = () => {
+  const insets = useSafeAreaInsets();
+
+  const handleScenarioSelect = (scenario: "street" | "transport") => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
-    console.log("Emergency alert triggered");
-    router.push("/(tabs)/scenarios");
+    console.log(`Alert triggered for scenario: ${scenario}`);
+    router.push({
+      pathname: "/(tabs)/alert-sent",
+      params: { 
+        type: scenario,
+      },
+    });
   };
  
   const handleSilentPress = () => {
@@ -43,56 +49,46 @@ export default function HomeScreen() {
 <View style={styles.container}>
 <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 <SafeAreaView style={styles.safeArea}>
-<View style={styles.content}>
+<View style={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
 <View style={styles.header}>
-<Text style={styles.logo}>ZONE ADAPT</Text>
-<Text style={styles.subtitle}>Protection instantanée</Text>
+<Image 
+  source={require("@/assets/images/adaptive-icon.png")}
+  style={styles.logo}
+  resizeMode="contain"
+/>
+<Text style={styles.subtitle}>Ensemble, créons des lieux plus sûrs.</Text>
 </View>
  
-          <View style={styles.mainButtonContainer}>
-<Pressable 
-              style={({ pressed }) => [
-                styles.emergencyButton,
-                pressed && styles.emergencyButtonPressed
-              ]}
-              onPress={handleEmergencyPress}
-              testID="emergency-button"
->
-<View style={styles.buttonContent}>
-<ShieldAlert size={64} color={Colors.surface} strokeWidth={2.5} />
-<Text style={styles.emergencyButtonText}>ALERTE</Text>
-<Text style={styles.emergencyButtonSubtext}>Appuyer pour activer</Text>
-</View>
-</Pressable>
-</View>
- 
-          <Pressable 
-            style={({ pressed }) => [
-              styles.silentButton,
-              pressed && styles.silentButtonPressed
-            ]}
-            onPress={handleSilentPress}
-            testID="silent-button"
->
-<AlertCircle size={20} color={Colors.silent} strokeWidth={2.5} />
-<Text style={styles.silentButtonText}>Alerte silencieuse</Text>
-</Pressable>
- 
-          <View style={styles.footer}>
-<Pressable 
-              style={styles.refugeLink}
-              onPress={() => router.push("/(tabs)/refuge-profile")}
->
-<Text style={styles.refugeLinkText}>Je suis un refuge / commerçant</Text>
-</Pressable>
+
+
+<View style={styles.mainButtonContainer}>
+  <SwipeAlertButton onScenarioSelect={handleScenarioSelect} />
+  
+  <View style={styles.footer}>
+    <Pressable 
+      style={({ pressed }) => [
+        styles.silentButton,
+        pressed && styles.silentButtonPressed
+      ]}
+      onPress={handleSilentPress}
+      testID="silent-button"
+    >
+      <AlertCircle size={20} color={Colors.silent} strokeWidth={2.5} />
+      <Text style={styles.silentButtonText}>Alerte silencieuse</Text>
+    </Pressable>
+    <Pressable 
+      style={styles.refugeLink}
+      onPress={() => router.push("/(tabs)/refuge-profile")}
+    >
+      <Text style={styles.refugeLinkText}>Trouver un refuge à proximité</Text>
+    </Pressable>
+  </View>
 </View>
 </View>
 </SafeAreaView>
 </View>
   );
 }
- 
-const BUTTON_SIZE = Math.min(width * 0.65, 280);
  
 const styles = StyleSheet.create({
   container: {
@@ -105,72 +101,38 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
+    paddingVertical: 12,
     justifyContent: "space-between",
-    paddingVertical: 32,
   },
   header: {
     alignItems: "center",
-    paddingTop: 24,
+    paddingTop: 12,
   },
   logo: {
-    fontSize: 32,
-    fontWeight: "800" as const,
-    color: Colors.text,
-    letterSpacing: 1,
+    width: 140,
+    height: 140,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.textSecondary,
-    marginTop: 4,
+    marginTop: -12,
     fontWeight: "500" as const,
+    marginBottom: 80,
   },
   mainButtonContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emergencyButton: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  emergencyButtonPressed: {
-    transform: [{ scale: 0.95 }],
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  buttonContent: {
+    width: "100%",
     alignItems: "center",
     gap: 12,
-  },
-  emergencyButtonText: {
-    fontSize: 32,
-    fontWeight: "900" as const,
-    color: Colors.surface,
-    letterSpacing: 2,
-  },
-  emergencyButtonSubtext: {
-    fontSize: 14,
-    color: Colors.surface,
-    opacity: 0.9,
-    fontWeight: "500" as const,
+    paddingBottom: 16,
+    paddingHorizontal: 8,
   },
   silentButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     backgroundColor: Colors.surface,
     borderRadius: 16,
     shadowColor: Colors.shadow,
@@ -180,6 +142,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1.5,
     borderColor: Colors.silent,
+    marginTop: 12,
   },
   silentButtonPressed: {
     opacity: 0.7,
@@ -192,7 +155,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: "center",
-    paddingBottom: 8,
+    paddingBottom: 16,
+    marginTop: 12,
   },
   refugeLink: {
     paddingVertical: 12,
