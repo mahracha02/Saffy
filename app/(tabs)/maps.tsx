@@ -1,18 +1,11 @@
-import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  Pressable,
-  StatusBar,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, View, Text, Pressable, StatusBar, ActivityIndicator, Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { MapPin, Navigation, Plus, Minus, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
-import MapView, { Marker, Circle } from "react-native-maps";
+import LeafletMapWeb, { LeafletMapHandle } from "@/components/LeafletMapWeb";
+import LeafletMapNative from "@/components/LeafletMapNative";
 
 import Colors from "@/constants/colors";
 
@@ -28,12 +21,10 @@ export default function MapsScreen() {
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const mapRef = React.useRef<MapView>(null);
+  const mapRef = useRef<LeafletMapHandle | null>(null);
   const [currentRegion, setCurrentRegion] = useState({
     latitude: 48.8566,
     longitude: 2.3522,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
   });
 
   useEffect(() => {
@@ -63,14 +54,8 @@ export default function MapsScreen() {
       setLoading(false);
 
       // Center map on user location
-      const initialRegion = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      };
-      setCurrentRegion(initialRegion);
-      mapRef.current?.animateToRegion(initialRegion, 1000);
+      setCurrentRegion({ latitude: coords.latitude, longitude: coords.longitude });
+      mapRef.current?.centerTo(coords.latitude, coords.longitude);
     } catch {
       setError("Failed to get location");
       setLoading(false);
@@ -79,36 +64,16 @@ export default function MapsScreen() {
 
   const handleCenterMap = () => {
     if (location) {
-      mapRef.current?.animateToRegion(
-        {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        },
-        500
-      );
+      mapRef.current?.centerTo(location.latitude, location.longitude);
     }
   };
 
   const handleZoomIn = () => {
-    const newRegion = {
-      ...currentRegion,
-      latitudeDelta: Math.max(currentRegion.latitudeDelta - 0.01, 0.005),
-      longitudeDelta: Math.max(currentRegion.longitudeDelta - 0.01, 0.005),
-    };
-    setCurrentRegion(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 300);
+    mapRef.current?.zoomIn();
   };
 
   const handleZoomOut = () => {
-    const newRegion = {
-      ...currentRegion,
-      latitudeDelta: Math.min(currentRegion.latitudeDelta + 0.01, 0.5),
-      longitudeDelta: Math.min(currentRegion.longitudeDelta + 0.01, 0.5),
-    };
-    setCurrentRegion(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 300);
+    mapRef.current?.zoomOut();
   };
 
   const handleStop = () => {
@@ -150,48 +115,25 @@ export default function MapsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          zoomControlEnabled={false}
-          onRegionChangeComplete={setCurrentRegion}
-        >
-          {/* User location marker */}
-          <Marker
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            title="Your Location"
-            description="Current position"
-          >
-            <View style={styles.markerContainer}>
-              <View style={styles.markerOuter}>
-                <View style={styles.markerInner} />
-              </View>
-            </View>
-          </Marker>
-
-          {/* Accuracy circle */}
-          <Circle
-            center={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            radius={location.accuracy}
-            fillColor={`${Colors.primary}20`}
-            strokeColor={Colors.primary}
-            strokeWidth={1}
-          />
-        </MapView>
+        <View style={styles.map}>
+          {Platform.OS === "web" ? (
+            <LeafletMapWeb
+              ref={mapRef}
+              latitude={location.latitude}
+              longitude={location.longitude}
+              accuracy={location.accuracy}
+              onRegionChange={(r) => setCurrentRegion({ latitude: r.latitude, longitude: r.longitude })}
+            />
+          ) : (
+            <LeafletMapNative
+              ref={mapRef}
+              latitude={location.latitude}
+              longitude={location.longitude}
+              accuracy={location.accuracy}
+              onRegionChange={(r) => setCurrentRegion({ latitude: r.latitude, longitude: r.longitude })}
+            />
+          )}
+        </View>
 
         {/* Location info card */}
         <View style={styles.infoCard}>

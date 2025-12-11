@@ -21,7 +21,7 @@ const scenarioNames: Record<string, string> = {
   hospital: "Hôpital",
   silent: "Silencieuse"
 };
- 
+
 export default function AlertSentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
