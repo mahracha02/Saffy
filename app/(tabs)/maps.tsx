@@ -13,13 +13,15 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { MapPin, Navigation, Plus, Minus, Settings, MoreVertical, X, ChevronRight, Menu, Volume2, VolumeX } from "lucide-react-native";
+import { MapPin, Navigation, Plus, Minus, Settings, MoreVertical, X, ChevronRight, Menu, Volume2, VolumeX, Phone } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import * as Speech from "expo-speech";
+import * as Linking from "expo-linking";
 import MapView, { Marker, Circle, Polyline } from "react-native-maps";
 
 import Colors from "@/constants/colors";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface LocationCoords {
   latitude: number;
@@ -32,8 +34,10 @@ interface RefugeZone {
   latitude: number;
   longitude: number;
   name: string;
+  phone?: string;
   radius: number;
 }
+
 
 const REFUGE_ZONES: RefugeZone[] = [
   // Labege (Sud-Est)
@@ -42,6 +46,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5397,
     longitude: 1.5236,
     name: "Centre Labège",
+    phone: "06 09 13 02 10",
     radius: 10,
   },
   {
@@ -49,6 +54,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5450,
     longitude: 1.5180,
     name: "Labège Innopole",
+    phone: "0521323456",
     radius: 10,
   },
   {
@@ -56,6 +62,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5320,
     longitude: 1.5290,
     name: "Parc Labège Village",
+    phone: "06 16 04 03 02",
     radius: 10,
   },
   // Blagnac (Nord-Ouest)
@@ -64,6 +71,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6360,
     longitude: 1.3890,
     name: "Centre Blagnac",
+    phone: "06 03 05 07 04",
     radius: 10,
   },
   {
@@ -71,6 +79,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6420,
     longitude: 1.3750,
     name: "Parc de Blagnac",
+    phone: "06 09 09 01 01",
     radius: 10,
   },
   {
@@ -78,6 +87,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6290,
     longitude: 1.3960,
     name: "Odyssud Blagnac",
+    phone: "06 12 14 08 03",
     radius: 10,
   },
   // Colomiers (Ouest)
@@ -86,6 +96,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6109,
     longitude: 1.3340,
     name: "Centre Colomiers",
+    phone: "06 06 10 09 05",
     radius: 10,
   },
   {
@@ -93,6 +104,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6180,
     longitude: 1.3210,
     name: "Parc du Cabirol",
+    phone: "06 00 12 13 06",
     radius: 10,
   },
   {
@@ -100,6 +112,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6040,
     longitude: 1.3450,
     name: "Colomiers Lycée",
+    phone: "06 14 16 11 07",
     radius: 10,
   },
   // Balma (Est)
@@ -108,6 +121,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6110,
     longitude: 1.4990,
     name: "Centre Balma",
+    phone: "06 01 14 07 08",
     radius: 10,
   },
   {
@@ -115,6 +129,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6200,
     longitude: 1.5080,
     name: "Balma Gramont",
+    phone: "06 15 02 05 09",
     radius: 10,
   },
   {
@@ -122,6 +137,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6050,
     longitude: 1.4890,
     name: "Parc Balma",
+    phone: "06 07 04 15 10",
     radius: 10,
   },
   // Castanet-Tolosan (Sud-Est)
@@ -130,6 +146,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5163,
     longitude: 1.4978,
     name: "Centre Castanet",
+    phone: "06 02 02 03 11",
     radius: 10,
   },
   {
@@ -137,6 +154,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5230,
     longitude: 1.5050,
     name: "Castanet Place",
+    phone: "06 12 00 01 12",
     radius: 10,
   },
   {
@@ -144,6 +162,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5100,
     longitude: 1.4890,
     name: "Parc Castanet",
+    phone: "06 08 06 13 00",
     radius: 10,
   },
   // Tournefeuille (Sud-Ouest)
@@ -152,6 +171,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5851,
     longitude: 1.3440,
     name: "Centre Tournefeuille",
+    phone: "06 04 08 11 01",
     radius: 10,
   },
   {
@@ -159,6 +179,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5920,
     longitude: 1.3350,
     name: "Parc du Château",
+    phone: "06 10 10 09 02",
     radius: 10,
   },
   {
@@ -166,6 +187,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5780,
     longitude: 1.3520,
     name: "Tournefeuille Mairie",
+    phone: "06 06 12 07 03",
     radius: 10,
   },
   // Cugnaux (Sud-Ouest)
@@ -174,6 +196,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5368,
     longitude: 1.3455,
     name: "Centre Cugnaux",
+    phone: "06 00 14 05 04",
     radius: 10,
   },
   {
@@ -181,6 +204,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5420,
     longitude: 1.3380,
     name: "Parc de Cugnaux",
+    phone: "06 10 12 03 05",
     radius: 10,
   },
   {
@@ -188,6 +212,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5310,
     longitude: 1.3540,
     name: "Cugnaux Sports",
+    phone: "06 04 04 01 06",
     radius: 10,
   },
   // Muret (Sud)
@@ -196,6 +221,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.4616,
     longitude: 1.3267,
     name: "Centre Muret",
+    phone: "06 14 06 09 07",
     radius: 10,
   },
   {
@@ -203,6 +229,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.4690,
     longitude: 1.3180,
     name: "Parc de Muret",
+    phone: "06 08 08 11 08",
     radius: 10,
   },
   {
@@ -210,6 +237,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.4550,
     longitude: 1.3340,
     name: "Muret Gare",
+    phone: "06 02 10 07 09",
     radius: 10,
   },
   {
@@ -217,6 +245,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.4720,
     longitude: 1.3410,
     name: "Muret Estantens",
+    phone: "06 12 08 05 10",
     radius: 10,
   },
   // Portet-sur-Garonne (Sud)
@@ -225,6 +254,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5220,
     longitude: 1.4080,
     name: "Centre Portet",
+    phone: "06 06 14 03 00",
     radius: 10,
   },
   {
@@ -232,6 +262,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5180,
     longitude: 1.3980,
     name: "Portet Récébédou",
+    phone: "06 00 02 15 01",
     radius: 10,
   },
   {
@@ -239,6 +270,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5280,
     longitude: 1.4150,
     name: "Parc Portet",
+    phone: "06 14 12 13 02",
     radius: 10,
   },
   // Centre Toulouse
@@ -247,6 +279,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6047,
     longitude: 1.4410,
     name: "Capitole Toulouse",
+    phone: "06 03 03 09 03",
     radius: 10,
   },
   {
@@ -254,6 +287,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5890,
     longitude: 1.4520,
     name: "Arnaud-Bernard",
+    phone: "06 13 07 11 04",
     radius: 10,
   },
   {
@@ -261,6 +295,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6200,
     longitude: 1.4300,
     name: "Compans Caffarelli",
+    phone: "06 07 01 07 05",
     radius: 10,
   },
   {
@@ -268,6 +303,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5750,
     longitude: 1.4650,
     name: "Saint-Cyprien",
+    phone: "06 01 03 05 06",
     radius: 10,
   },
   {
@@ -275,6 +311,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.6109,
     longitude: 1.4637,
     name: "Jardin des Plantes",
+    phone: "06 15 05 01 07",
     radius: 10,
   },
   {
@@ -282,6 +319,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5970,
     longitude: 1.4284,
     name: "Place Wilson",
+    phone: "06 09 09 13 08",
     radius: 10,
   },
   {
@@ -289,6 +327,7 @@ const REFUGE_ZONES: RefugeZone[] = [
     latitude: 43.5844,
     longitude: 1.4390,
     name: "Quartier Carmes",
+    phone: "06 03 07 11 09",
     radius: 10,
   },
 ];
@@ -296,8 +335,9 @@ const REFUGE_ZONES: RefugeZone[] = [
 export default function MapsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { settings } = useSettings();
+  
   const [location, setLocation] = useState<LocationCoords | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nearestRefuge, setNearestRefuge] = useState<RefugeZone | null>(null);
   const [showRefugeCard, setShowRefugeCard] = useState(true);
@@ -307,6 +347,7 @@ export default function MapsScreen() {
   const [routeCoordinates, setRouteCoordinates] = useState<{latitude: number, longitude: number}[]>([]);
   const [isVoiceGuidanceActive, setIsVoiceGuidanceActive] = useState(false);
   const [lastDistance, setLastDistance] = useState<number | null>(null);
+  const [routingMode, setRoutingMode] = useState<'driving' | 'walking'>('walking');
   const [isNavigationMode, setIsNavigationMode] = useState(false);
   const mapRef = React.useRef<MapView>(null);
   const [currentRegion, setCurrentRegion] = useState({
@@ -331,6 +372,16 @@ export default function MapsScreen() {
   ).current;
 
   useEffect(() => {
+    // Set default location for Toulouse immediately
+    const defaultLocation = {
+      latitude: 43.6047,
+      longitude: 1.4410,
+      accuracy: 100,
+    };
+    setLocation(defaultLocation);
+    findNearestRefugeWithCoords(defaultLocation);
+    
+    // Request actual location in background
     requestLocationPermission();
     
     // Start pulse animation for alert button
@@ -405,8 +456,7 @@ export default function MapsScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setError("Permission to access location was denied");
-        setLoading(false);
+        setError("Permission d'accès à la localisation refusée. Veuillez autoriser l'accès dans les paramètres de votre appareil.");
         return;
       }
 
@@ -421,7 +471,6 @@ export default function MapsScreen() {
       };
 
       setLocation(coords);
-      setLoading(false);
 
       // Find nearest refuge after location is set - pass coords directly
       findNearestRefugeWithCoords(coords);
@@ -435,9 +484,9 @@ export default function MapsScreen() {
       };
       setCurrentRegion(initialRegion);
       mapRef.current?.animateToRegion(initialRegion, 1000);
-    } catch {
-      setError("Failed to get location");
-      setLoading(false);
+    } catch (err) {
+      console.error("Location error:", err);
+      setError("Impossible d'obtenir votre position. Vérifiez que le GPS est activé et réessayez.");
     }
   };
 
@@ -506,8 +555,8 @@ export default function MapsScreen() {
   const speakDirection = (message: string) => {
     Speech.speak(message, {
       language: 'fr-FR',
-      pitch: 1.0,
-      rate: 0.9,
+      pitch: settings.voicePitch,
+      rate: settings.voiceSpeechRate,
     });
   };
 
@@ -528,9 +577,11 @@ export default function MapsScreen() {
     if (!location) return;
     
     try {
-      // Try OSRM API first
+      // Try OSRM API first, using selected routing mode
+      const profile = routingMode === 'walking' ? 'foot' : 'driving';
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${location.longitude},${location.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`;
       const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${location.longitude},${location.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson`,
+        url,
         {
           headers: {
             'Accept': 'application/json',
@@ -563,7 +614,8 @@ export default function MapsScreen() {
         // Calculate distance and provide initial voice guidance
         const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
         const durationMin = Math.round(data.routes[0].duration / 60);
-        speakDirection(`Itinéraire trouvé. Distance ${distanceKm} kilomètres. Durée estimée ${durationMin} minutes.`);
+        const modeLabel = routingMode === 'walking' ? 'à pied' : 'en voiture';
+        speakDirection(`Itinéraire ${modeLabel} trouvé. Distance ${distanceKm} kilomètres. Durée estimée ${durationMin} minutes.`);
         return;
       }
     } catch (error) {
@@ -642,6 +694,7 @@ export default function MapsScreen() {
       }
       setLastDistance(currentDistance);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, isVoiceGuidanceActive, showRoute]);
 
   
@@ -749,30 +802,17 @@ export default function MapsScreen() {
     setLastDistance(null);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}> En cours de localisation...</Text>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
-
-  if (error || !location) {
+  if (error) {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.errorContainer}>
             <MapPin size={48} color={Colors.warning} />
-            <Text style={styles.errorText}>{error || "Location not available"}</Text>
+            <Text style={styles.errorText}>{error}</Text>
             <Pressable style={styles.retryButton} onPress={requestLocationPermission}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Navigation size={18} color={Colors.surface} strokeWidth={2} />
+              <Text style={styles.retryButtonText}>Réessayer</Text>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -784,6 +824,7 @@ export default function MapsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        {location ? (
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -801,38 +842,42 @@ export default function MapsScreen() {
           {/* Refuge Zone Circles and Markers */}
           {REFUGE_ZONES.map((zone, index) => (
             <React.Fragment key={zone.id}>
-              {/* Animated refuge zone circle */}
-              <Circle
-                center={{
-                  latitude: zone.latitude,
-                  longitude: zone.longitude,
-                }}
-                radius={zone.radius}
-                fillColor="#00C85120"
-                strokeColor="#00C851"
-                strokeWidth={2}
-              />
+              {/* Animated refuge zone circle - only show if setting enabled */}
+              {settings.showRefugeRadius && (
+                <Circle
+                  center={{
+                    latitude: zone.latitude,
+                    longitude: zone.longitude,
+                  }}
+                  radius={zone.radius}
+                  fillColor="#00C85120"
+                  strokeColor="#00C851"
+                  strokeWidth={2}
+                />
+              )}
 
-              {/* Refuge zone marker with icon */}
-              <Marker
-                coordinate={{
-                  latitude: zone.latitude,
-                  longitude: zone.longitude,
-                }}
-                title={zone.name}
-                onPress={() => handleRefugeMarkerPress(zone)}
-              >
-                <View style={styles.refugeMarkerContainer}>
-                  <Image
-                    source={require("@/assets/images/iconVert.png")}
-                    style={styles.refugeMarkerIcon}
-                  />
-                  {/* Show label only when zoomed in (latitudeDelta < 0.05) */}
-                  {currentRegion.latitudeDelta < 0.05 && (
-                    <Text style={styles.refugeMarkerLabel}>{zone.name}</Text>
-                  )}
-                </View>
-              </Marker>
+              {/* Refuge zone marker with icon - only show if setting enabled */}
+              {settings.showRefugeMarkers && (
+                <Marker
+                  coordinate={{
+                    latitude: zone.latitude,
+                    longitude: zone.longitude,
+                  }}
+                  title={zone.name}
+                  onPress={() => handleRefugeMarkerPress(zone)}
+                >
+                  <View style={styles.refugeMarkerContainer}>
+                    <Image
+                      source={require("@/assets/images/iconVert.png")}
+                      style={styles.refugeMarkerIcon}
+                    />
+                    {/* Show label only when zoomed in (latitudeDelta < 0.05) */}
+                    {currentRegion.latitudeDelta < 0.05 && (
+                      <Text style={styles.refugeMarkerLabel}>{zone.name}</Text>
+                    )}
+                  </View>
+                </Marker>
+              )}
             </React.Fragment>
           ))}
 
@@ -853,20 +898,22 @@ export default function MapsScreen() {
             </Animated.View>
           </Marker>
 
-          {/* Danger zone circle around user location */}
-          <Circle
-            center={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            radius={location.accuracy * 5}
-            fillColor="#E91E6320"
-            strokeColor="#E91E63"
-            strokeWidth={4}
-          />
+          {/* Danger zone circle around user location - only show if setting enabled */}
+          {settings.showDangerZone && (
+            <Circle
+              center={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              radius={location.accuracy * 5}
+              fillColor="#E91E6320"
+              strokeColor="#E91E63"
+              strokeWidth={4}
+            />
+          )}
 
-          {/* Route polyline from user to selected refuge */}
-          {showRoute && routeCoordinates.length > 0 && (
+          {/* Route polyline from user to selected refuge - only show if setting enabled */}
+          {settings.routeVisualizationEnabled && showRoute && routeCoordinates.length > 0 && (
             <Polyline
               coordinates={routeCoordinates}
               strokeColor="#E91E63"
@@ -876,6 +923,12 @@ export default function MapsScreen() {
             />
           )}
         </MapView>
+        ) : (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Chargement de la carte...</Text>
+          </View>
+        )}
 
         {/* Control buttons */}
         <View style={styles.controls}>
@@ -953,15 +1006,30 @@ export default function MapsScreen() {
               </Text>
             </View>
             
-            <Pressable 
-              style={selectedRefuge ? styles.selectedRefugeNavigateButton : styles.refugeNavigateButton}
-              onPress={selectedRefuge ? handleNavigateToSelectedRefuge : handleNavigateToRefuge}
-            >
-              <Navigation size={18} color={Colors.surface} strokeWidth={2} />
-              <Text style={styles.refugeNavigateButtonText}>
-                {selectedRefuge ? "Naviguer vers ce refuge" : "Naviguer"}
-              </Text>
-            </Pressable>
+            <View style={styles.refugeCardButtonContainer}>
+              <Pressable 
+                style={selectedRefuge ? styles.selectedRefugeNavigateButton : styles.refugeNavigateButton}
+                onPress={selectedRefuge ? handleNavigateToSelectedRefuge : handleNavigateToRefuge}
+              >
+                <Navigation size={18} color={Colors.surface} strokeWidth={2} />
+                <Text style={styles.refugeNavigateButtonText}>
+                  {selectedRefuge ? "Naviguer " : "Naviguer"}
+                </Text>
+              </Pressable>
+              
+              <Pressable 
+                style={selectedRefuge ? styles.selectedRefugeCallButton : styles.refugeCallButton}
+                onPress={() => {
+                  const refuge = selectedRefuge || nearestRefuge;
+                  if (refuge?.phone) {
+                    Linking.openURL(`tel:${refuge.phone.replace(/\s/g, '')}`);
+                  }
+                }}
+              >
+                <Phone size={18} color={Colors.surface} strokeWidth={2} />
+                <Text style={styles.refugeNavigateButtonText}>Appeler</Text>
+              </Pressable>
+            </View>
           </View>
         )}
 
@@ -971,7 +1039,7 @@ export default function MapsScreen() {
             <View style={styles.navigationHeader}>
               <View style={styles.navigationTitleContainer}>
                 <Navigation size={20} color={Colors.primary} strokeWidth={2.5} />
-                <Text style={styles.navigationTitle}>Navigation en cours</Text>
+                <Text style={styles.navigationTitle}>Navigation en cours ({routingMode === 'walking' ? 'À pied' : 'Voiture'})</Text>
               </View>
               <Pressable 
                 style={styles.navigationCloseButton}
@@ -1020,6 +1088,20 @@ export default function MapsScreen() {
                       isVoiceGuidanceActive && styles.navigationVoiceTextActive
                     ]}>
                       {isVoiceGuidanceActive ? "ON" : "OFF"}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.navigationStatDivider} />
+
+                <View style={styles.navigationStatItem}>
+                  <Text style={styles.navigationStatLabel}>Mode</Text>
+                  <Pressable
+                    style={styles.navigationVoiceButton}
+                    onPress={() => setRoutingMode(prev => prev === 'walking' ? 'driving' : 'walking')}
+                  >
+                    <Text style={styles.navigationVoiceText}>
+                      {routingMode === 'walking' ? 'Marche' : 'Voiture'}
                     </Text>
                   </Pressable>
                 </View>
@@ -1110,7 +1192,7 @@ export default function MapsScreen() {
         {/* Tab Bar - Below FAB with 3 sections */}
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom || 12 }]}>
           {/* Left: Settings Icon */}
-          <Pressable style={styles.tabBarSection} onPress={() => console.log('Settings')}>
+          <Pressable style={styles.tabBarSection} onPress={() => router.push('/(tabs)/settings')}>
             <Settings size={24} color={Colors.secondary} strokeWidth={2} />
           </Pressable>
 
@@ -1166,11 +1248,20 @@ const styles = StyleSheet.create({
     fontWeight: "500" as const,
   },
   retryButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     backgroundColor: Colors.primary,
     borderRadius: 12,
     marginTop: 8,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   retryButtonText: {
     fontSize: 16,
@@ -1537,6 +1628,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 3,
+    flex: 1,
+  },
+  refugeCallButton: {
+    flexDirection: "row",
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 3,
+    flex: 1,
+  },
+  refugeCardButtonContainer: {
+    flexDirection: "row",
+    gap: 8,
   },
   refugeNavigateButtonText: {
     fontSize: 14,
@@ -1694,6 +1806,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
+    flex: 1,
+  },
+  selectedRefugeCallButton: {
+    flexDirection: "row",
+    backgroundColor: Colors.warning,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: Colors.warning,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+    flex: 1,
   },
   navigationPanel: {
     position: "absolute",
@@ -1722,7 +1851,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   navigationTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700" as const,
     color: Colors.primary,
     textTransform: "uppercase",
