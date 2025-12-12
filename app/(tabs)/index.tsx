@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 32,
     fontWeight: "700" as const,
-    color: Colors.text,
+    color: Colors.darkLight,
     marginTop: -12,
     marginBottom: 12,
     letterSpacing: 0.5,
