@@ -338,6 +338,7 @@ export default function MapsScreen() {
   const { settings } = useSettings();
   
   const [location, setLocation] = useState<LocationCoords | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nearestRefuge, setNearestRefuge] = useState<RefugeZone | null>(null);
   const [showRefugeCard, setShowRefugeCard] = useState(true);
@@ -347,6 +348,7 @@ export default function MapsScreen() {
   const [routeCoordinates, setRouteCoordinates] = useState<{latitude: number, longitude: number}[]>([]);
   const [isVoiceGuidanceActive, setIsVoiceGuidanceActive] = useState(false);
   const [lastDistance, setLastDistance] = useState<number | null>(null);
+  const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
   const [routingMode, setRoutingMode] = useState<'driving' | 'walking'>('walking');
   const [isNavigationMode, setIsNavigationMode] = useState(false);
   const mapRef = React.useRef<MapView>(null);
@@ -372,16 +374,7 @@ export default function MapsScreen() {
   ).current;
 
   useEffect(() => {
-    // Set default location for Toulouse immediately
-    const defaultLocation = {
-      latitude: 43.6047,
-      longitude: 1.4410,
-      accuracy: 100,
-    };
-    setLocation(defaultLocation);
-    findNearestRefugeWithCoords(defaultLocation);
-    
-    // Request actual location in background
+    // Request location immediately
     requestLocationPermission();
     
     // Start pulse animation for alert button
@@ -454,39 +447,50 @@ export default function MapsScreen() {
 
   const requestLocationPermission = async () => {
     try {
+      setError(null);
+      setLoading(true);
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setError("Permission d'accès à la localisation refusée. Veuillez autoriser l'accès dans les paramètres de votre appareil.");
+        setLoading(false);
         return;
       }
 
+      const applyLocation = (coords: Location.LocationObjectCoords) => {
+        const parsed = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: coords.accuracy || 10,
+        };
+        setLocation(parsed);
+        findNearestRefugeWithCoords(parsed);
+        const region = {
+          latitude: parsed.latitude,
+          longitude: parsed.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        };
+        setCurrentRegion(region);
+        mapRef.current?.animateToRegion(region, 800);
+      };
+
+      // Use last known location first for speed
+      const lastKnown = await Location.getLastKnownPositionAsync();
+      if (lastKnown?.coords) {
+        applyLocation(lastKnown.coords);
+      }
+
+      // Then fetch fresh high-accuracy position
       const currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-
-      const coords = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        accuracy: currentLocation.coords.accuracy || 10,
-      };
-
-      setLocation(coords);
-
-      // Find nearest refuge after location is set - pass coords directly
-      findNearestRefugeWithCoords(coords);
-
-      // Center map on user location
-      const initialRegion = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      };
-      setCurrentRegion(initialRegion);
-      mapRef.current?.animateToRegion(initialRegion, 1000);
+      applyLocation(currentLocation.coords);
     } catch (err) {
       console.error("Location error:", err);
       setError("Impossible d'obtenir votre position. Vérifiez que le GPS est activé et réessayez.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -614,6 +618,7 @@ export default function MapsScreen() {
         // Calculate distance and provide initial voice guidance
         const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
         const durationMin = Math.round(data.routes[0].duration / 60);
+        setEstimatedDuration(durationMin);
         const modeLabel = routingMode === 'walking' ? 'à pied' : 'en voiture';
         speakDirection(`Itinéraire ${modeLabel} trouvé. Distance ${distanceKm} kilomètres. Durée estimée ${durationMin} minutes.`);
         return;
@@ -800,6 +805,7 @@ export default function MapsScreen() {
     setIsVoiceGuidanceActive(false);
     Speech.stop();
     setLastDistance(null);
+    setEstimatedDuration(null);
   };
 
   if (error) {
@@ -824,16 +830,10 @@ export default function MapsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-        {location ? (
         <MapView
           ref={mapRef}
           style={styles.map}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
+          initialRegion={currentRegion}
           showsUserLocation={false}
           showsMyLocationButton={false}
           zoomControlEnabled={false}
@@ -882,24 +882,26 @@ export default function MapsScreen() {
           ))}
 
           {/* User location marker */}
-          <Marker
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            title="Votre position"
-            description="Position actuelle"
-          >
-            <Animated.View style={[styles.userMarkerContainer, { transform: [{ scale: locationPulseAnim }] }]}>
-              <Image
-                source={require("@/assets/images/iconRose.png")}
-                style={styles.userMarkerIcon}
-              />
-            </Animated.View>
-          </Marker>
+          {location && (
+            <Marker
+              coordinate={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              title="Votre position"
+              description="Position actuelle"
+            >
+              <Animated.View style={[styles.userMarkerContainer, { transform: [{ scale: locationPulseAnim }] }]}>
+                <Image
+                  source={require("@/assets/images/iconRose.png")}
+                  style={styles.userMarkerIcon}
+                />
+              </Animated.View>
+            </Marker>
+          )}
 
           {/* Danger zone circle around user location - only show if setting enabled */}
-          {settings.showDangerZone && (
+          {location && settings.showDangerZone && (
             <Circle
               center={{
                 latitude: location.latitude,
@@ -923,10 +925,13 @@ export default function MapsScreen() {
             />
           )}
         </MapView>
-        ) : (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Chargement de la carte...</Text>
+
+        {loading && (
+          <View style={styles.inlineLoadingOverlay} pointerEvents="none">
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.inlineLoadingText}>
+              {location ? "Mise à jour de votre position..." : "Recherche de votre position..."}
+            </Text>
           </View>
         )}
 
@@ -1067,6 +1072,15 @@ export default function MapsScreen() {
                       (selectedRefuge || nearestRefuge)!.latitude, 
                       (selectedRefuge || nearestRefuge)!.longitude
                     ).toFixed(2)} km
+                  </Text>
+                </View>
+                
+                <View style={styles.navigationStatDivider} />
+                
+                <View style={styles.navigationStatItem}>
+                  <Text style={styles.navigationStatLabel}>Estimation</Text>
+                  <Text style={styles.navigationStatValue}>
+                    {estimatedDuration ? `${estimatedDuration} min` : '--'}
                   </Text>
                 </View>
                 
@@ -1229,10 +1243,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
+  inlineLoadingOverlay: {
+    position: "absolute",
+    top: 16,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
   loadingText: {
     fontSize: 16,
     color: Colors.textSecondary,
     fontWeight: "500" as const,
+  },
+  inlineLoadingText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: "600" as const,
   },
   errorContainer: {
     flex: 1,
